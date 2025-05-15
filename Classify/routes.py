@@ -289,6 +289,8 @@ def submit_assignment():
                 pass
         return jsonify({'error': 'Database error'}), 500
 
+    flash('Succesfully submitted', 'success')
+
 @app.route('/submissions')
 @login_required
 def submissions():
