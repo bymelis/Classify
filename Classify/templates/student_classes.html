@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classify | Classes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_classes.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <span class="logo">Classify</span>
+            <div class="nav-links">
+                <div class="nav-item">
+                    <a href="{{ url_for('dashboard_page') }}" class="nav-link {% if active_tab == 'assignments' %}active{% endif %}">
+                        Assignments
+                    </a>
+                </div>
+                <div class="nav-divider">|</div>
+                <div class="nav-item">
+                    <a href="{{ url_for('classes') }}" class="nav-link {% if active_tab == 'classes' %}active{% endif %}">
+                        My Classes
+                    </a>
+                </div>
+            </div>
+            <div class="nav-user">
+                <span class="user-name">{{ current_user.name }}</span>
+                <a href="{{ url_for('logout') }}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" id="main-flash-message">
+                        {{ message }}
+                        <button class="close-btn" onclick="dismissMainFlash()">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content-header">
+            <h1>Your Classes</h1>
+            <button class="create-btn" onclick="openJoinModal()">
+                Join Class
+            </button>
+        </div>
+
+        <div class="classes-grid">
+            {% if classes %}
+                {% for class in classes %}
+                    <div class="class-card">
+                        <div class="class-header">
+                            <h2>{{ class.name }}</h2>
+                            <span class="teacher-name">
+                                <i class="fas fa-user-tie"></i>
+                                Teacher: {{ class.teacher.name }}
+                            </span>
+                        </div>
+                        <p class="class-description">{{ class.description }}</p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-classes">
+                    <i class="fas fa-chalkboard fa-3x"></i>
+                    <p>You haven't joined any classes yet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Join Class Modal -->
+    <div id="joinModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeJoinModal()">&times;</span>
+            <h2>Join Class</h2>
+            <form action="{{ url_for('join_class') }}" method="POST">
+                <div class="form-group">
+                    <label for="code">Class Code</label>
+                    <input type="text" id="code" name="code" required placeholder="Enter class code">
+                </div>
+                <button type="submit" class="submit-btn">Join Class</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/student_classes.js') }}"></script>
+</body>
+</html>

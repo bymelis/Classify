@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classify | Submissions</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/submissions.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <span class="logo">Classify</span>
+            <div class="nav-links">
+                <div class="nav-item">
+                    <a href="{{ url_for('dashboard_page') }}" class="nav-link {% if active_tab == 'assignments' %}active{% endif %}">
+                        <i class="fas fa-book-open"></i> Assignments
+                    </a>
+                </div>
+                <div class="nav-divider">|</div>
+                <div class="nav-item">
+                    <a href="{{ url_for('classes') }}" class="nav-link {% if active_tab == 'classes' %}active{% endif %}">
+                        <i class="fas fa-chalkboard"></i> Classes
+                    </a>
+                </div>
+                <div class="nav-divider">|</div>
+                <div class="nav-item">
+                    <a href="{{ url_for('submissions') }}" class="nav-link {% if active_tab == 'submissions' %}active{% endif %}">
+                        <i class="fas fa-inbox"></i> Submissions
+                    </a>
+                </div>
+            </div>
+            <div class="nav-user">
+                <span class="user-name">{{ current_user.name }}</span>
+                <a href="{{ url_for('logout') }}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" id="main-flash-message">
+                        {{ message }}
+                        <button class="close-btn" onclick="dismissMainFlash()">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content-header">
+            <h1>Submissions</h1>
+        </div>
+
+        <!-- Update this part in submissions.html -->
+        <div class="assignments-grid">
+            {% if assignments %}
+                {% for assignment_data in assignments %}
+                    <div class="assignment-card" onclick="showAllSubmissions({{ assignment_data.assignment.id }})">
+                        <div class="assignment-header">
+                            <h3>{{ assignment_data.assignment.title }}</h3>
+                            <span class="submission-count">
+                                {{ assignment_data.submissions|length }} submission{% if assignment_data.submissions|length != 1 %}s{% endif %}
+                            </span>
+                        </div>
+
+                        {% if assignment_data.submissions %}
+                            <div class="submissions-preview">
+                                {% for submission in assignment_data.submissions[:2] %}
+                                    <div class="submission-preview-item">
+                                        <div class="student-info">
+                                            <i class="fas fa-user"></i>
+                                            <span>{{ submission.student.name }}</span>
+                                        </div>
+                                        <div class="submission-details">
+                                            <span class="submission-date">
+                                                <i class="fas fa-clock"></i>
+                                                {{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') }}
+                                            </span>
+                                            {% if submission.grade is not none %}
+                                                <span class="grade-badge graded">
+                                                    <i class="fas fa-check-circle"></i> {{ submission.grade }}/100
+                                                </span>
+                                            {% else %}
+                                                <span class="grade-badge pending">
+                                                    <i class="fas fa-hourglass-half"></i> Not Graded
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+
+                                {% if assignment_data.submissions|length > 2 %}
+                                    <div class="more-submissions-text">
+                                        <i class="fas fa-plus"></i>
+                                        {{ assignment_data.submissions|length - 2 }} more submissions
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <p class="no-submissions">No submissions yet</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-assignments">
+                    <i class="fas fa-inbox"></i>
+                    <p>No assignments available</p>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Submission Details Modal -->
+    <div id="submissionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle"></h2>
+            <div id="modalContent"></div>
+
+            <div class="grading-section">
+                <form id="gradeForm" class="grade-form">
+                    <div class="form-group">
+                        <label for="grade">Grade (0-100)</label>
+                        <input type="number" id="grade" name="grade" min="0" max="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="feedback">Feedback</label>
+                        <textarea id="feedback" name="feedback" rows="4"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit Grade</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Submissions Modal -->
+    <div id="allSubmissionsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAllSubmissionsModal()">&times;</span>
+            <h2 id="assignmentTitle"></h2>
+            <div class="submissions-list" id="submissionsList">
+                <!-- Submissions will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/submissions.js') }}"></script>
+</body>
+</html>

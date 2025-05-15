@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classify | Assignments</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_dashboard.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <span class="logo">Classify</span>
+            <div class="nav-links">
+                <div class="nav-item">
+                    <a href="{{ url_for('dashboard_page') }}" class="nav-link {% if active_tab == 'assignments' %}active{% endif %}">
+                        <i class="fas fa-book-open"></i> Assignments
+                    </a>
+                </div>
+                <div class="nav-divider">|</div>
+                <div class="nav-item">
+                    <a href="{{ url_for('classes') }}" class="nav-link {% if active_tab == 'classes' %}active{% endif %}">
+                        <i class="fas fa-chalkboard"></i> Classes
+                    </a>
+                </div>
+                <div class="nav-divider">|</div>
+                <div class="nav-item">
+                    <a href="{{ url_for('submissions') }}" class="nav-link {% if active_tab == 'submissions' %}active{% endif %}">
+                        <i class="fas fa-inbox"></i> Submissions
+                    </a>
+                </div>
+            </div>
+            <div class="nav-user">
+                <span class="user-name">{{ current_user.name }}</span>
+                <a href="{{ url_for('logout') }}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" id="main-flash-message">
+                        {{ message }}
+                        <button class="close-btn" onclick="dismissMainFlash()">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content-header">
+            <h1>Manage Assignments</h1>
+            <button class="create-btn" onclick="openModal()">
+                Post Assignment
+            </button>
+        </div>
+
+        <div class="assignments-grid">
+            {% if assignments %}
+                {% for assignment in assignments %}
+                    <div class="assignment-card" onclick="openAssignmentModal({{ assignment.id }})">
+                        <div class="class-badge">{{ assignment.class_.name }}</div>
+                        <div class="assignment-header">
+                            <h2>{{ assignment.title }}</h2>
+                            <span class="due-date">
+                                <i class="far fa-clock"></i>
+                                Due: {{ assignment.due_date.strftime('%B %d, %Y') }}
+                            </span>
+                        </div>
+                        <p class="assignment-description">{{ assignment.description }}</p>
+                        <div class="assignment-stats">
+                            <span class="submission-count">
+                                <i class="fas fa-file-alt"></i>
+                                {% set submission_count = assignment.submissions|length %}
+                                {{ submission_count }} Submission{{ 's' if submission_count != 1 }}
+                            </span>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-assignments">
+                    <i class="fas fa-book-open fa-3x"></i>
+                    <p>No assignments created yet. Click the button above to create your first assignment.</p>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Create Assignment Modal -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Create New Assignment</h2>
+            <form action="{{ url_for('create_assignment') }}" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="class_id">Class</label>
+                    <select id="class_id" name="class_id" required>
+                        <option value="">Select a class</option>
+                        {% for class in classes %}
+                            <option value="{{ class.id }}">{{ class.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="due_date">Due Date</label>
+                    <input type="datetime-local" id="due_date" name="due_date" required>
+                </div>
+                <button type="submit" class="create-btn">Create Assignment</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Assignment Detail Modal -->
+    <div id="assignmentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAssignmentModal()">&times;</span>
+            <h2>Update Assignment</h2>
+            <form id="updateAssignmentForm">
+                <div class="form-group">
+                    <label for="modalClassId">Class</label>
+                    <select id="modalClassId" required>
+                        {% for class in classes %}
+                            <option value="{{ class.id }}">{{ class.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="modalTitleInput">Title</label>
+                    <input type="text" id="modalTitleInput" required placeholder="Enter assignment title">
+                </div>
+                <div class="form-group">
+                    <label for="modalDescriptionInput">Description</label>
+                    <textarea id="modalDescriptionInput" required placeholder="Enter assignment description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="modalDueDateInput">Due Date</label>
+                    <input type="datetime-local" id="modalDueDateInput" required>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="update-btn">
+                        <i class="fas fa-save"></i> Update Assignment
+                    </button>
+                    <button type="button" class="delete-btn" onclick="deleteAssignment()">
+                        <i class="fas fa-trash"></i> Delete Assignment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/teacher_dashboard.js') }}"></script>
+
+</body>
+</html>

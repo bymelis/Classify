@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classify | Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_dashboard.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <span class="logo">Classify</span>
+            <div class="nav-links">
+                <div class="nav-item">
+                    <a href="{{ url_for('dashboard_page') }}" class="nav-link {% if active_tab == 'assignments' %}active{% endif %}">
+                        Assignments
+                    </a>
+                </div>
+                <div class="nav-divider">|</div>
+                <div class="nav-item">
+                    <a href="{{ url_for('classes') }}" class="nav-link {% if active_tab == 'classes' %}active{% endif %}">
+                        My Classes
+                    </a>
+                </div>
+            </div>
+            <div class="nav-user">
+                <span class="user-name">{{ current_user.name }}</span>
+                <a href="{{ url_for('logout') }}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" id="main-flash-message">
+                        {{ message }}
+                        <button class="close-btn" onclick="dismissMainFlash()">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content-header">
+            <h1>Your Assignments</h1>
+        </div>
+
+        <div class="assignments-grid">
+            {% if assignments %}
+                {% for assignment in assignments %}
+                    <div class="assignment-card {% if assignment.id in submitted_assignments %}submitted{% endif %}"
+                         onclick="openAssignmentModal({{ assignment.id }})"
+                         data-assignment-id="{{ assignment.id }}">
+                        <div class="class-badge">{{ assignment.class_.name }}</div>
+                        <div class="assignment-header">
+                            <h2>{{ assignment.title }}</h2>
+                            <span class="due-date">
+                                <i class="far fa-clock"></i>
+                                Due: {{ assignment.due_date.strftime('%B %d, %Y') }}
+                            </span>
+                        </div>
+                        <p class="assignment-description">{{ assignment.description }}</p>
+                        <div class="assignment-stats">
+                            {% if assignment.id in submitted_assignments %}
+                                {% if submissions_data[assignment.id]['grade'] is not none %}
+                                    <span class="submission-status graded">
+                                        <i class="fas fa-check"></i> Graded
+                                    </span>
+                                {% else %}
+                                    <span class="submission-status submitted">
+                                        <i class="fas fa-paper-plane"></i> Submitted
+                                    </span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-assignments">
+                    <i class="fas fa-book-open fa-3x"></i>
+                    <p>No assignments available.</p>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Submit Assignment Modal -->
+    <div id="assignmentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAssignmentModal()">&times;</span>
+            <h2>Submit Assignment</h2>
+            <form id="assignmentForm" enctype="multipart/form-data">
+                <input type="hidden" id="assignmentId" name="assignment_id">
+                <div class="form-group">
+                    <label for="submissionFile">Upload File</label>
+                    <input type="file" id="submissionFile" name="submission_file" required>
+                    <small class="file-hint">Allowed file types: PDF, TXT, PNG, JPG, JPEG, GIF</small>
+                </div>
+                <div class="form-group">
+                    <label for="notes">Notes (Optional)</label>
+                    <textarea id="notes" name="notes" rows="4" placeholder="Add any notes for your submission..."></textarea>
+                </div>
+                <button type="submit" class="submit-btn">Submit Assignment</button>
+            </form>
+        </div>
+    </div>
+
+
+
+    <!-- Graded Assignment Modal -->
+    <div id="gradedAssignmentModal" class="modal">
+        <div class="modal-content feedback-modal">
+            <div class="modal-header">
+                <div class="header-content">
+                    <h2 id="assignmentTitle">Assignment Feedback</h2>
+                    <span id="assignmentClass" class="class-label"></span>
+                </div>
+                <button class="close-btn" onclick="closeGradedAssignmentModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="grade-section">
+                    <div class="grade-display">
+                        <div class="grade-circle">
+                            <span id="gradeValue"></span>
+                            <span class="grade-max">/<span id="maxPoints"></span></span>
+                        </div>
+                        <span class="grade-label">Points Earned</span>
+                    </div>
+
+                    <div class="feedback-section">
+                        <h3><i class="fas fa-comment"></i> Instructor Feedback</h3>
+                        <div id="feedbackContent" class="feedback-text"></div>
+                    </div>
+                </div>
+
+                <div class="submission-details">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <i class="fas fa-paper-plane"></i>
+                            <div class="info-content">
+                                <label>Submitted</label>
+                                <span id="submissionDate"></span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-check-circle"></i>
+                            <div class="info-content">
+                                <label>Graded</label>
+                                <span id="gradingDate"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="submission-actions">
+                        <a id="downloadSubmissionLink" href="#" class="action-btn download-btn">
+                            <i class="fas fa-download"></i>
+                            Download Submission
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/student_dashboard.js') }}"></script>
+
+</body>
+</html>
